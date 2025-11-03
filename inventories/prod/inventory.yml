@@ -1,0 +1,9 @@
+prod:
+  hosts:
+    videopoint-www1:
+      ansible_host: 104.248.25.29
+      ansible_user: root
+    videopoint-www2:
+      ansible_host: 167.172.102.208
+      ansible_user: root
+  

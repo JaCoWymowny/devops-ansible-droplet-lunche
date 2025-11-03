@@ -1,0 +1,38 @@
+- name: 'TASK: {{ do_state }} our droplet(s)'
+  community.digitalocean.digital_ocean_droplet:
+    state: "{{ do_state }}"
+    oauth_token: "{{ do_api_token }}"
+    name: "{{ droplet_name }}-{{ item }}"
+    region_id: "fra1"
+    image_id: "ubuntu-24-04-x64"
+    size_id: "s-1vcpu-1gb"
+    unique_name: true
+    project: "Videopoint"
+    ssh_keys:
+      - "51728053"
+    tags: "ansible"
+  register: droplet_details
+  loop: "{{ do_loop_droplet_name }}"
+
+- name: 'TASK: Display IP addresses'
+  debug:
+    msg: "The IP of droplet {{ droplet_name }}-{{ item.item }} is {{ item.data.droplet.networks.v4[0].ip_address }}"
+  loop: "{{ droplet_details.results }}"
+  when: item.data.droplet.networks.v4[0].ip_address is defined
+
+- name: "TASK: Wait for port 22"
+  ansible.builtin.wait_for:
+    host: "{{ item.data.droplet.networks.v4[0].ip_address }}"
+    port: 22
+    delay: 15
+  connection: local
+  when: item.data.droplet.networks.v4[0].ip_address is defined
+  loop: "{{ droplet_details.results }}"
+
+- name: "TASK: Generate template yaml inventory"
+  ansible.builtin.template:
+    src: inventory.yml.j2
+    dest: "{{ global_dest_path }}/inventories/prod/inventory.yml"
+  connection: local
+  when: item.data.droplet.networks.v4[0].ip_address is defined
+  loop: "{{ droplet_details.results }}"

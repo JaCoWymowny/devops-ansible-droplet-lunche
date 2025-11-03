@@ -1,0 +1,7 @@
+prod:
+  hosts:
+  {% for result in droplet_details.results %}
+  {{ droplet_name }}-{{ result.item }}:
+      ansible_host: {{ result.data.droplet.networks.v4[0].ip_address }}
+      ansible_user: root
+  {% endfor %}
