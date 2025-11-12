@@ -1,0 +1,6 @@
+- name: Create a DigitalOcean droplet
+  hosts: all
+  gather_facts: no
+
+  roles:
+    - { role: "configure_nginx" }

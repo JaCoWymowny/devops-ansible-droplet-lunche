@@ -1,0 +1,106 @@
+- name: Aktualizacja listy pakietów
+  ansible.builtin.apt:
+    update_cache: yes
+  become: yes
+  register: result
+  until: result is not failed
+  retries: 10
+  delay: 5
+
+- name: Instalacja pakietu Nginx
+  ansible.builtin.apt:
+    name: 
+      - nginx
+      - unzip
+    state: present
+  become: yes
+  register: result
+  until: result is not failed
+  retries: 10
+  delay: 5
+
+- name: Usuwanie domyślnej strony
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  become: yes
+
+- name: Tworzenie nowej strony domyślnej
+  ansible.builtin.copy:
+    src: default.conf
+    dest: /etc/nginx/sites-available/default
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Włączenie nowej strony domyślnej
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/default
+    dest: /etc/nginx/sites-enabled/default
+    state: link
+  become: yes
+
+- name: Tworzenie katalogu /root/www
+  ansible.builtin.file:
+    path: /var/www/html
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: 0755
+  become: yes
+
+- name: Tworzenie pliku index.html
+  ansible.builtin.copy:
+    content: "<h1>Witaj na stronie Nginx!</h1>"
+    dest: /var/www/html/index.html
+    owner: www-data
+    group: www-data
+    mode: 0644
+  become: yes
+
+- name: Create document root directories
+  file:
+    path: "/var/www/my_website/{{ item }}"
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: 0755
+  with_items:
+    - "{{ domain1 }}"
+  become: yes
+
+- name: Unarchive videopoint1.zip
+  ansible.builtin.unarchive:
+    src: videopointdevops.zip
+    dest: "/var/www/my_website/{{ domain1 }}"
+    #remote_src: yes
+    owner: www-data
+    group: www-data
+  become: yes
+
+- name: Configure nginx virtual host
+  template:
+    src: nginx_vhost.j2
+    dest: "/etc/nginx/sites-available/{{ item }}"
+    owner: root
+    group: root
+    mode: 0644
+  with_items:
+    - "{{ domain1 }}"
+  become: yes
+
+- name: Włączenie nowej strony domyślnej
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/{{ item }}
+    dest: /etc/nginx/sites-enabled/{{ item }}
+    state: link
+  with_items:
+    - "{{ domain1 }}"
+  become: yes
+
+- name: Restart serwera Nginx
+  ansible.builtin.systemd:
+    name: nginx
+    state: restarted
+    enabled: yes
+  become: yes
